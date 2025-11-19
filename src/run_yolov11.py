@@ -399,8 +399,8 @@ class YOLO11Benchmark:
 
 def main():
     parser = argparse.ArgumentParser(description='YOLO11n Benchmark for Raspberry Pi 4B')
-    parser.add_argument('--model', type=str, default='models/yolov11n.onnx',
-                       help='Path to YOLO11n ONNX model')
+    parser.add_argument('--model', type=str, default='setup/models/yolo11n.onnx',
+                        help='Path to YOLO11 ONNX model')
     parser.add_argument('--input-size', type=int, default=640,
                        help='Input image size (default: 640)')
     parser.add_argument('--duration', type=int, default=60,
