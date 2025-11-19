@@ -120,20 +120,23 @@ case $choice in
     5)
         echo ""
         read -p "Enter path to test image: " img_path
-        if [ -f "$img_path" ]; then
-            echo "Running YOLOv8n with test image..."
-            python3 src/run_yolov8.py --image "$img_path" --iterations 100
+        if [ ! -f "$img_path" ]; then
+                echo "[ERROR] Image not found: $img_path"
+                read -p "Press Enter to continue..."
+                continue
+            fi
             
             echo ""
-            echo "Running YOLO11n with test image..."
-            python3 src/run_yolov11.py --image "$img_path" --iterations 100
+            echo "Select model:"
+            echo "  1) YOLOv8n"
+            echo "  2) YOLO11n"
+            read -p "Choice [1-2]: " model_choice
             
-            echo ""
-            echo "Comparing results..."
-            python3 src/compare_results.py --auto
-        else
-            echo "✗ Image not found: $img_path"
-        fi
+            case $model_choice in
+                1) model="yolov8n" ;;
+                2) model="yolo11n" ;;
+                *) echo "[ERROR] Invalid model choice"; continue ;;
+            esac
         ;;
     6)
         echo ""

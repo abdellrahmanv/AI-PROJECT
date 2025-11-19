@@ -26,25 +26,25 @@ WARNINGS=0
 
 # Function to print colored messages
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}[OK]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1"
     WARNINGS=$((WARNINGS + 1))
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1"
     ERRORS=$((ERRORS + 1))
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
 print_progress() {
-    echo -e "${BLUE}⏳${NC} $1"
+    echo -e "${BLUE}[...]${NC} $1"
 }
 
 # Function to retry a command
@@ -624,9 +624,9 @@ import sys
 try:
     model = YOLO('models/yolov8n.pt')
     model.export(format='onnx', simplify=True)
-    print("✓ Export successful")
+    print("[OK] Export successful")
 except Exception as e:
-    print(f"✗ Export failed: {e}")
+    print(f"[ERROR] Export failed: {e}")
     sys.exit(1)
 EOF
             then
@@ -659,9 +659,9 @@ import sys
 try:
     model = YOLO('models/yolo11n.pt')
     model.export(format='onnx', simplify=True)
-    print("✓ Export successful")
+    print("[OK] Export successful")
 except Exception as e:
-    print(f"✗ Export failed: {e}")
+    print(f"[ERROR] Export failed: {e}")
     sys.exit(1)
 EOF
             then
@@ -719,7 +719,7 @@ cd "$SCRIPT_DIR"
 
 if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
-    echo "✓ Virtual environment activated"
+    echo "[OK] Virtual environment activated"
     echo ""
     echo "You can now run:"
     echo "  python3 src/run_yolov8.py"
@@ -728,7 +728,7 @@ if [ -f "venv/bin/activate" ]; then
     echo ""
     echo "To deactivate: deactivate"
 else
-    echo "✗ Virtual environment not found"
+    echo "[ERROR] Virtual environment not found"
     echo "Run: ./setup/setup.sh"
 fi
 EOF
@@ -820,7 +820,7 @@ if [ "$VENV_FAILED" != true ] && [ -d "$VENV_DIR" ]; then
     print_success "Virtual environment ready at: $VENV_PATH"
 fi
 
-print_success "Setup complete! Happy benchmarking! 🚀"
+print_success "Setup complete! Happy benchmarking!"
 echo ""
 if [ "$IS_PI" = true ] && command_exists vcgencmd; then
     CAMERA_STATUS=$(vcgencmd get_camera 2>/dev/null || echo "unknown")
@@ -939,13 +939,13 @@ for module, name in packages:
 
 # Print results
 for s in success:
-    print(f"✓ {s}")
+    print(f"[OK] {s}")
 
 if errors:
-    print(f"\n✗ Failed imports: {', '.join(errors)}")
+    print(f"\n[ERROR] Failed imports: {', '.join(errors)}")
     sys.exit(1)
 else:
-    print("\n✓ All packages verified")
+    print("\n[OK] All packages verified")
     sys.exit(0)
 EOF
 
@@ -977,16 +977,16 @@ try:
         ret, frame = cap.read()
         cap.release()
         if ret:
-            print("✓ Camera accessible")
+            print("[OK] Camera accessible")
             sys.exit(0)
         else:
-            print("⚠ Camera opened but cannot read frames")
+            print("[WARNING] Camera opened but cannot read frames")
             sys.exit(1)
     else:
-        print("⚠ Cannot open camera")
+        print("[WARNING] Cannot open camera")
         sys.exit(1)
 except Exception as e:
-    print(f"⚠ Camera test error: {e}")
+    print(f"[WARNING] Camera test error: {e}")
     sys.exit(1)
 EOF
     

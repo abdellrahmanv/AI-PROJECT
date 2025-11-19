@@ -19,10 +19,10 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-print_success() { echo -e "${GREEN}✓${NC} $1"; }
-print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
-print_error() { echo -e "${RED}✗${NC} $1"; }
-print_info() { echo -e "${BLUE}ℹ${NC} $1"; }
+print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
 # Check if we're in the right directory
 if [ ! -f "requirements.txt" ] || [ ! -d "src" ]; then
@@ -104,7 +104,7 @@ fi
 
 # Verify critical imports
 print_info "Verifying installation..."
-python3 -c "import cv2, onnxruntime, psutil, numpy; print('✓ All critical packages verified')"
+python3 -c "import cv2, onnxruntime, psutil, numpy; print('[OK] All critical packages verified')"
 
 # Create directories
 mkdir -p models logs/yolov8 logs/yolov11

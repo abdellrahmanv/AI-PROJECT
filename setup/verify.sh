@@ -16,19 +16,19 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}[OK]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
 print_info() {
-    echo -e "ℹ $1"
+    echo -e "[INFO] $1"
 }
 
 ERRORS=0
