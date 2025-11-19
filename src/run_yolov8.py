@@ -179,10 +179,29 @@ class YOLOv8Benchmark:
         
         # Open camera
         ConsoleLogger.progress(f"Opening camera {camera_index}...")
-        cap = cv2.VideoCapture(camera_index)
         
-        if not cap.isOpened():
-            ConsoleLogger.error("Failed to open camera")
+        # Try different camera backends for Raspberry Pi compatibility
+        # Newer Raspberry Pi OS uses libcamera (rpicam)
+        cap = None
+        backends = [
+            (cv2.CAP_V4L2, "V4L2"),
+            (cv2.CAP_ANY, "ANY"),
+            (camera_index, "Default")
+        ]
+        
+        for backend, name in backends:
+            cap = cv2.VideoCapture(camera_index, backend) if backend != camera_index else cv2.VideoCapture(camera_index)
+            if cap.isOpened():
+                ConsoleLogger.success(f"Camera opened using {name} backend")
+                break
+            cap.release()
+        
+        if not cap or not cap.isOpened():
+            ConsoleLogger.error("Failed to open camera with any backend")
+            ConsoleLogger.info("For Raspberry Pi with libcamera, ensure:")
+            ConsoleLogger.info("  1. Camera is enabled: sudo raspi-config")
+            ConsoleLogger.info("  2. v4l2 driver loaded: sudo modprobe bcm2835-v4l2")
+            ConsoleLogger.info("  3. Or use --image mode for testing")
             return
         
         # Set camera properties
@@ -190,7 +209,10 @@ class YOLOv8Benchmark:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         cap.set(cv2.CAP_PROP_FPS, 30)
         
-        ConsoleLogger.success("Camera opened")
+        # Get actual properties
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        ConsoleLogger.info(f"Camera resolution: {actual_width}x{actual_height}")
         
         # Start monitoring
         self._start_monitoring()
