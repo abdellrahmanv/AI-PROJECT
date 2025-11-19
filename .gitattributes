@@ -1,0 +1,15 @@
+# Set line endings for shell scripts to LF (Unix style)
+*.sh text eol=lf
+
+# Python files - use LF
+*.py text eol=lf
+
+# Documentation - auto
+*.md text
+*.txt text
+
+# Keep these as-is (binary)
+*.png binary
+*.jpg binary
+*.onnx binary
+*.pt binary
