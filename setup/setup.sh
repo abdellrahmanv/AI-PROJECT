@@ -317,18 +317,83 @@ else
     print_success "All required system dependencies installed"
 fi
 
-# Upgrade pip
+# Create virtual environment BEFORE installing Python packages
 echo ""
-echo "Upgrading pip..."
-print_progress "Upgrading pip to latest version..."
+echo "=========================================="
+echo "CREATING VIRTUAL ENVIRONMENT"
+echo "=========================================="
+echo ""
 
-if retry_command "python3 -m pip install --upgrade pip 2>&1 | grep -v 'WARNING'"; then
-    PIP_VERSION=$(pip3 --version 2>&1 | awk '{print $2}')
-    print_success "pip upgraded to version $PIP_VERSION"
+VENV_DIR="venv"
+VENV_PATH="$(pwd)/$VENV_DIR"
+
+if [ -d "$VENV_DIR" ]; then
+    print_warning "Virtual environment already exists at $VENV_DIR"
+    read -p "Do you want to remove and recreate it? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_progress "Removing existing virtual environment..."
+        rm -rf "$VENV_DIR"
+        print_success "Removed existing virtual environment"
+    else
+        print_info "Using existing virtual environment"
+        SKIP_VENV_CREATE=true
+    fi
+fi
+
+if [ "$SKIP_VENV_CREATE" != true ]; then
+    print_progress "Creating virtual environment at $VENV_DIR..."
+    
+    if python3 -m venv "$VENV_DIR" 2>/dev/null; then
+        print_success "Virtual environment created successfully"
+    else
+        print_warning "venv module failed, trying virtualenv..."
+        
+        # Try installing virtualenv
+        if python3 -m pip install --user virtualenv >/dev/null 2>&1; then
+            if virtualenv "$VENV_DIR" 2>/dev/null; then
+                print_success "Virtual environment created with virtualenv"
+            else
+                print_error "All virtual environment creation methods failed"
+                print_info "Continuing with system Python (not recommended)"
+                VENV_FAILED=true
+            fi
+        else
+            print_error "Cannot create virtual environment"
+            print_info "Continuing with system Python (not recommended)"
+            VENV_FAILED=true
+        fi
+    fi
+fi
+
+# Activate virtual environment
+if [ "$VENV_FAILED" != true ] && [ -f "$VENV_DIR/bin/activate" ]; then
+    print_progress "Activating virtual environment..."
+    source "$VENV_DIR/bin/activate"
+    print_success "Virtual environment activated"
+    
+    # Verify activation
+    CURRENT_PYTHON=$(which python3)
+    if [[ "$CURRENT_PYTHON" == *"$VENV_DIR"* ]]; then
+        print_success "Using Python from virtual environment: $CURRENT_PYTHON"
+    else
+        print_warning "Virtual environment may not be properly activated"
+    fi
+    
+    # Upgrade pip in venv
+    print_progress "Upgrading pip in virtual environment..."
+    if python3 -m pip install --upgrade pip >/dev/null 2>&1; then
+        PIP_VERSION=$(pip3 --version 2>&1 | awk '{print $2}')
+        print_success "pip upgraded to $PIP_VERSION in venv"
+    fi
+    
+    # Install wheel and setuptools
+    print_progress "Installing build tools..."
+    pip3 install --upgrade setuptools wheel >/dev/null 2>&1
+    print_success "Build tools installed"
+    
 else
-    print_warning "pip upgrade failed, using existing version"
-    PIP_VERSION=$(pip3 --version 2>&1 | awk '{print $2}')
-    print_info "Current pip version: $PIP_VERSION"
+    print_warning "Skipping virtual environment - using system Python"
 fi
 
 # Function to install Python package with fallback
@@ -380,8 +445,13 @@ install_python_package() {
 
 # Install Python packages
 echo ""
-echo "Installing Python packages..."
-print_info "This may take 10-15 minutes on Raspberry Pi..."
+echo "=========================================="
+echo "INSTALLING PYTHON PACKAGES"
+echo "=========================================="
+echo ""
+print_info "Installing packages in $([ "$VENV_FAILED" != true ] && echo "virtual environment" || echo "system Python")..."
+print_info "This may take 10-20 minutes on Raspberry Pi..."
+echo ""
 
 PYTHON_ERRORS=0
 
@@ -887,91 +957,5 @@ EOF
     rm -f "$CAMERA_TEST"
 fi
 
-# Create virtual environment
-echo ""
-echo "=========================================="
-echo "CREATING VIRTUAL ENVIRONMENT"
-echo "=========================================="
-echo ""
-
-VENV_DIR="venv"
-VENV_PATH="$(pwd)/$VENV_DIR"
-
-if [ -d "$VENV_DIR" ]; then
-    print_warning "Virtual environment already exists at $VENV_DIR"
-    read -p "Do you want to remove and recreate it? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_progress "Removing existing virtual environment..."
-        rm -rf "$VENV_DIR"
-        print_success "Removed existing virtual environment"
-    else
-        print_info "Using existing virtual environment"
-        SKIP_VENV_CREATE=true
-    fi
-fi
-
-if [ "$SKIP_VENV_CREATE" != true ]; then
-    print_progress "Creating virtual environment at $VENV_DIR..."
-    
-    if python3 -m venv "$VENV_DIR" 2>/dev/null; then
-        print_success "Virtual environment created successfully"
-    else
-        print_warning "venv module failed, trying virtualenv..."
-        
-        # Try installing virtualenv
-        if pip3 install virtualenv >/dev/null 2>&1; then
-            if virtualenv "$VENV_DIR" 2>/dev/null; then
-                print_success "Virtual environment created with virtualenv"
-            else
-                print_error "All virtual environment creation methods failed"
-                print_info "Continuing with system Python (not recommended)"
-                VENV_FAILED=true
-            fi
-        else
-            print_error "Cannot create virtual environment"
-            print_info "Continuing with system Python (not recommended)"
-            VENV_FAILED=true
-        fi
-    fi
-fi
-
-# Activate virtual environment
-if [ "$VENV_FAILED" != true ] && [ -f "$VENV_DIR/bin/activate" ]; then
-    print_progress "Activating virtual environment..."
-    source "$VENV_DIR/bin/activate"
-    print_success "Virtual environment activated"
-    
-    # Verify activation
-    CURRENT_PYTHON=$(which python3)
-    if [[ "$CURRENT_PYTHON" == *"$VENV_DIR"* ]]; then
-        print_success "Using Python from virtual environment: $CURRENT_PYTHON"
-    else
-        print_warning "Virtual environment may not be properly activated"
-    fi
-    
-    # Upgrade pip in venv
-    print_progress "Upgrading pip in virtual environment..."
-    if python3 -m pip install --upgrade pip >/dev/null 2>&1; then
-        PIP_VERSION=$(pip3 --version 2>&1 | awk '{print $2}')
-        print_success "pip upgraded to $PIP_VERSION in venv"
-    fi
-    
-    # Install wheel and setuptools
-    print_progress "Installing build tools..."
-    pip3 install --upgrade setuptools wheel >/dev/null 2>&1
-    print_success "Build tools installed"
-    
-else
-    print_warning "Skipping virtual environment - using system Python"
-fi
-
-# Install Python packages in venv
-echo ""
-echo "=========================================="
-echo "INSTALLING PYTHON PACKAGES"
-echo "=========================================="
-echo ""
-print_info "Installing packages in $([ "$VENV_FAILED" != true ] && echo "virtual environment" || echo "system Python")..."
-print_info "This may take 10-20 minutes on Raspberry Pi..."
-echo ""
+# Note: Virtual environment already created and activated earlier in the script (after system dependencies)
+# All Python packages below will be installed in the venv
