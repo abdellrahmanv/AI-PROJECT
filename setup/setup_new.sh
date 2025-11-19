@@ -36,21 +36,41 @@ if [[ ! -f /proc/device-tree/model ]] || ! grep -q "Raspberry Pi" /proc/device-t
 fi
 
 # Detect Python version
+# Try Python 3.11 first (best compatibility), then 3.12, then 3.10
 PYTHON_CMD=""
-if command -v python3 &> /dev/null; then
-    PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-    PYTHON_CMD="python3"
-    print_info "Python version: $PYTHON_VERSION"
-else
-    print_error "Python 3 not found. Install it with: sudo apt install python3 python3-pip python3-venv"
+PYTHON_VERSION=""
+
+for py_ver in python3.11 python3.12 python3.10 python3; do
+    if command -v $py_ver &> /dev/null; then
+        PYTHON_VERSION=$($py_ver --version 2>&1 | awk '{print $2}')
+        PYTHON_MAJOR=$($py_ver -c 'import sys; print(sys.version_info[0])')
+        PYTHON_MINOR=$($py_ver -c 'import sys; print(sys.version_info[1])')
+        
+        # Check if version is 3.10, 3.11, or 3.12 (not 3.13!)
+        if [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -ge 10 ]] && [[ $PYTHON_MINOR -le 12 ]]; then
+            PYTHON_CMD="$py_ver"
+            print_success "Using $py_ver (version $PYTHON_VERSION)"
+            break
+        elif [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -eq 13 ]]; then
+            print_warning "$py_ver is version $PYTHON_VERSION (too new - ONNX doesn't compile)"
+        fi
+    fi
+done
+
+if [[ -z "$PYTHON_CMD" ]]; then
+    print_error "Python 3.10, 3.11, or 3.12 required!"
+    echo ""
+    echo "Python 3.13 is too new - ONNX package doesn't compile yet."
+    echo ""
+    echo "Install Python 3.11:"
+    echo "  sudo apt update"
+    echo "  sudo apt install -y python3.11 python3.11-venv python3.11-dev"
+    echo ""
+    echo "Then run this script again."
+    exit 1
 fi
 
-# Check Python version (need 3.8+)
-PYTHON_MAJOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info[0])')
-PYTHON_MINOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info[1])')
-if [[ $PYTHON_MAJOR -lt 3 ]] || [[ $PYTHON_MAJOR -eq 3 && $PYTHON_MINOR -lt 8 ]]; then
-    print_error "Python 3.8+ required. Found: $PYTHON_VERSION"
-fi
+print_info "Python version: $PYTHON_VERSION"
 
 # ==========================================
 # Step 1: System Dependencies
