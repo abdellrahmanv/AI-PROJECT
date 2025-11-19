@@ -56,15 +56,21 @@ def run_camera_benchmark(model_path, duration, format_type='pt'):
     # Initialize camera
     print("[INFO] Initializing camera...")
     if use_picamera2:
-        picam2 = Picamera2()
-        picam2.preview_configuration.main.size = (640, 480)
-        picam2.preview_configuration.main.format = "RGB888"
-        picam2.preview_configuration.align()
-        picam2.configure("preview")
-        picam2.start()
-        time.sleep(2)  # Warm up camera
-        print("[OK] Picamera2 initialized")
-    else:
+        try:
+            picam2 = Picamera2()
+            picam2.preview_configuration.main.size = (640, 480)
+            picam2.preview_configuration.main.format = "RGB888"
+            picam2.preview_configuration.align()
+            picam2.configure("preview")
+            picam2.start()
+            time.sleep(2)  # Warm up camera
+            print("[OK] Picamera2 initialized")
+        except Exception as e:
+            print(f"[WARNING] Picamera2 failed to initialize: {e}")
+            print("[INFO] Falling back to OpenCV")
+            use_picamera2 = False
+
+    if not use_picamera2:
         # Try different backends
         for backend in [cv2.CAP_V4L2, cv2.CAP_ANY]:
             cap = cv2.VideoCapture(0, backend)
@@ -307,28 +313,47 @@ Examples:
     
     args = parser.parse_args()
     
+    # Define project root (parent of src directory)
+    project_root = Path(__file__).parent.parent
+
     # Determine model path
     if args.model:
-        model_path = args.model
+        model_path = Path(args.model)
     else:
         # Auto-detect model path based on format
         if args.format == 'pt':
-            model_path = 'models/yolov8n.pt'
+            model_path = project_root / 'models/yolov8n.pt'
         elif args.format == 'ncnn':
-            model_path = 'models/yolov8n_ncnn_model'
+            model_path = project_root / 'models/yolov8n_ncnn_model'
         elif args.format == 'onnx':
-            model_path = 'models/yolov8n.onnx'
+            model_path = project_root / 'models/yolov8n.onnx'
     
-    if not Path(model_path).exists():
+    if not model_path.exists():
         print(f"[ERROR] Model not found: {model_path}")
+        print(f"[INFO] Search path: {project_root}")
         print("[INFO] Run setup/setup_new.sh to download models")
         sys.exit(1)
     
+    # Warn about slow performance if using PT format on Pi
+    if args.format == 'pt':
+        try:
+            with open('/proc/device-tree/model', 'r') as f:
+                model_info = f.read()
+                if 'Raspberry Pi' in model_info:
+                    print("\n" + "!"*60)
+                    print("[WARNING] You are running PyTorch (.pt) model on Raspberry Pi.")
+                    print("          Performance will be very slow (1-2 FPS).")
+                    print("          Use --format ncnn for best performance (10-15+ FPS).")
+                    print("!"*60 + "\n")
+                    time.sleep(2)
+        except:
+            pass
+
     # Run benchmark
     if args.duration:
-        run_camera_benchmark(model_path, args.duration, args.format)
+        run_camera_benchmark(str(model_path), args.duration, args.format)
     else:
-        run_image_benchmark(model_path, args.image, args.iterations, args.format)
+        run_image_benchmark(str(model_path), args.image, args.iterations, args.format)
 
 
 if __name__ == "__main__":

@@ -121,14 +121,20 @@ echo ""
 VENV_DIR="$PROJECT_ROOT/venv"
 
 if [[ -d "$VENV_DIR" ]]; then
-    print_warning "Virtual environment already exists at $VENV_DIR"
-    read -p "Remove and recreate? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Check if existing venv is Python 3.13 (broken)
+    if "$VENV_DIR/bin/python3" -c 'import sys; exit(0 if sys.version_info[1] == 13 else 1)'; then
+        print_warning "Detected Python 3.13 in existing venv (incompatible). Removing..."
         rm -rf "$VENV_DIR"
-        print_info "Removed existing virtual environment"
     else
-        print_info "Using existing virtual environment"
+        print_warning "Virtual environment already exists at $VENV_DIR"
+        read -p "Remove and recreate? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            rm -rf "$VENV_DIR"
+            print_info "Removed existing virtual environment"
+        else
+            print_info "Using existing virtual environment"
+        fi
     fi
 fi
 
@@ -321,11 +327,11 @@ echo "Next steps:"
 echo "1. Activate virtual environment:"
 echo "   source venv/bin/activate"
 echo ""
-echo "2. Run YOLOv8n benchmark:"
-echo "   python3 src/run_yolov8.py --duration 60"
+echo "2. Run YOLOv8n benchmark (Fastest):"
+echo "   python3 src/run_yolov8_new.py --duration 60 --format ncnn"
 echo ""
-echo "3. Run YOLO11n benchmark:"
-echo "   python3 src/run_yolov11.py --duration 60"
+echo "3. Run YOLO11n benchmark (Fastest):"
+echo "   python3 src/run_yolo11_new.py --duration 60 --format ncnn"
 echo ""
 echo "4. Compare results:"
 echo "   python3 src/compare_results.py --auto"
