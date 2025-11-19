@@ -399,7 +399,7 @@ class YOLOv8Benchmark:
 
 def main():
     parser = argparse.ArgumentParser(description='YOLOv8n Benchmark for Raspberry Pi 4B')
-    parser.add_argument('--model', type=str, default='setup/models/yolov8n.onnx',
+    parser.add_argument('--model', type=str, default='models/yolov8n.onnx',
                         help='Path to YOLOv8 ONNX model')
     parser.add_argument('--input-size', type=int, default=640,
                        help='Input image size (default: 640)')
