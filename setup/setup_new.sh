@@ -58,16 +58,20 @@ for py_ver in python3.11 python3.12 python3.10 python3; do
 done
 
 if [[ -z "$PYTHON_CMD" ]]; then
-    print_error "Python 3.10, 3.11, or 3.12 required!"
-    echo ""
-    echo "Python 3.13 is too new - ONNX package doesn't compile yet."
-    echo ""
-    echo "Install Python 3.11:"
-    echo "  sudo apt update"
-    echo "  sudo apt install -y python3.11 python3.11-venv python3.11-dev"
-    echo ""
-    echo "Then run this script again."
-    exit 1
+    print_warning "No compatible Python version found (3.10-3.12)."
+    print_info "Current python3 is too new ($PYTHON_VERSION)."
+    
+    print_info "Attempting to install Python 3.11 automatically..."
+    echo "Running: sudo apt update && sudo apt install -y python3.11 python3.11-venv python3.11-dev"
+    
+    if sudo apt update && sudo apt install -y python3.11 python3.11-venv python3.11-dev; then
+        print_success "Python 3.11 installed successfully!"
+        PYTHON_CMD="python3.11"
+        PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
+    else
+        print_error "Failed to install Python 3.11 automatically. Please install it manually:\n  sudo apt install -y python3.11 python3.11-venv python3.11-dev"
+        exit 1
+    fi
 fi
 
 print_info "Python version: $PYTHON_VERSION"

@@ -14,7 +14,10 @@ if [ ! -d "venv" ] && [ ! -d "src/utils" ]; then
     echo "⚠ Setup not detected. Running full setup..."
     echo ""
     
-    if [ -f "setup/setup.sh" ]; then
+    if [ -f "setup/setup_new.sh" ]; then
+        chmod +x setup/setup_new.sh
+        bash setup/setup_new.sh
+    elif [ -f "setup/setup.sh" ]; then
         chmod +x setup/setup.sh
         bash setup/setup.sh
     else
@@ -88,17 +91,17 @@ case $choice in
     1)
         echo ""
         echo "Running YOLOv8n benchmark..."
-        python3 src/run_yolov8.py --duration 60
+        python3 src/run_yolov8_new.py --duration 60 --format ncnn
         ;;
     2)
         echo ""
         echo "Running YOLO11n benchmark..."
-        python3 src/run_yolov11.py --duration 60
+        python3 src/run_yolo11_new.py --duration 60 --format ncnn
         ;;
     3)
         echo ""
         echo "Running YOLOv8n benchmark first..."
-        python3 src/run_yolov8.py --duration 60
+        python3 src/run_yolov8_new.py --duration 60 --format ncnn
         
         echo ""
         echo "Waiting 30 seconds for Pi to cool down..."
@@ -106,7 +109,7 @@ case $choice in
         
         echo ""
         echo "Running YOLO11n benchmark..."
-        python3 src/run_yolov11.py --duration 60
+        python3 src/run_yolo11_new.py --duration 60 --format ncnn
         
         echo ""
         echo "Comparing results..."
@@ -148,9 +151,9 @@ case $choice in
         size=${size:-640}
         
         if [ "$model" = "yolov8" ]; then
-            python3 src/run_yolov8.py --duration $duration --input-size $size
+            python3 src/run_yolov8_new.py --duration $duration --input-size $size --format ncnn
         elif [ "$model" = "yolov11" ]; then
-            python3 src/run_yolov11.py --duration $duration --input-size $size
+            python3 src/run_yolo11_new.py --duration $duration --input-size $size --format ncnn
         else
             echo "✗ Invalid model choice"
         fi
