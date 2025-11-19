@@ -485,8 +485,8 @@ if ! install_python_package "opencv-python" "4.8.1.78" "opencv-python"; then
 fi
 
 # Verify OpenCV
-if python3 -c "import cv2" 2>/dev/null; then
-    CV2_VERSION=$(python3 -c "import cv2; print(cv2.__version__)")
+if "$VENV_PATH/bin/python3" -c "import cv2" 2>/dev/null || python3 -c "import cv2" 2>/dev/null; then
+    CV2_VERSION=$(python3 -c "import cv2; print(cv2.__version__)" 2>/dev/null || echo "unknown")
     print_success "opencv-python $CV2_VERSION ready"
 else
     print_error "OpenCV verification failed"
@@ -554,6 +554,13 @@ echo "=========================================="
 echo "DOWNLOADING YOLO MODELS"
 echo "=========================================="
 echo ""
+
+# Ensure models directory exists before downloading
+if [ ! -d "models" ]; then
+    print_progress "Creating models directory..."
+    mkdir -p models
+    print_success "models directory created"
+fi
 
 download_model() {
     local model_name=$1
@@ -854,7 +861,8 @@ DIRECTORIES=("models" "logs/yolov8" "logs/yolov11" "src/utils")
 
 for dir in "${DIRECTORIES[@]}"; do
     if [ -d "$dir" ]; then
-        print_success "$dir already exists"
+        # Directory already exists (may have been created during model download)
+        print_success "$dir created"
     else
         if mkdir -p "$dir" 2>/dev/null; then
             print_success "$dir created"
