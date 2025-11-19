@@ -606,55 +606,80 @@ download_model() {
 read -p "Do you want to download YOLO models now? (Y/n): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    # YOLOv8n URL (official Ultralytics release)
-    YOLOV8_URL="https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.onnx"
+    # YOLOv8n PyTorch model URL (official Ultralytics release)
+    YOLOV8_PT_URL="https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
     
-    # YOLO11n URL - try multiple sources
-    YOLO11_URLS=(
-        "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.onnx"
-        "https://github.com/ultralytics/assets/releases/download/v8.1.0/yolo11n.onnx"
-    )
+    # YOLO11n PyTorch model URL (official Ultralytics release)
+    YOLO11_PT_URL="https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt"
     
-    # Download YOLOv8n
-    if ! download_model "yolov8n" "$YOLOV8_URL"; then
+    # Download and export YOLOv8n
+    print_progress "Downloading YOLOv8n PyTorch model..."
+    if download_model "yolov8n" "$YOLOV8_PT_URL"; then
+        # Export to ONNX if ultralytics is available
+        if python3 -c "from ultralytics import YOLO" 2>/dev/null; then
+            print_progress "Exporting YOLOv8n to ONNX format..."
+            if python3 << 'EOF'
+from ultralytics import YOLO
+import sys
+try:
+    model = YOLO('models/yolov8n.pt')
+    model.export(format='onnx', simplify=True)
+    print("✓ Export successful")
+except Exception as e:
+    print(f"✗ Export failed: {e}")
+    sys.exit(1)
+EOF
+            then
+                # Move exported ONNX to models directory
+                if [ -f "yolov8n.onnx" ]; then
+                    mv yolov8n.onnx models/
+                    print_success "YOLOv8n.onnx exported successfully"
+                else
+                    print_warning "ONNX file not found after export"
+                fi
+            else
+                print_warning "YOLOv8n ONNX export failed - using .pt model"
+            fi
+        else
+            print_warning "ultralytics not available for export - keeping .pt model"
+        fi
+    else
         print_warning "YOLOv8n download failed - you'll need to download it manually"
     fi
     
-    # Download YOLO11n (try multiple URLs)
-    YOLO11_SUCCESS=false
-    for url in "${YOLO11_URLS[@]}"; do
-        if download_model "yolo11n" "$url"; then
-            YOLO11_SUCCESS=true
-            break
-        fi
-    done
-    
-    if [ "$YOLO11_SUCCESS" != true ]; then
-        print_warning "YOLO11n download failed - trying alternative method..."
-        
-        # Try exporting with ultralytics if available
-        if python3 -c "import ultralytics" 2>/dev/null; then
-            print_progress "Attempting to export YOLO11n using ultralytics..."
-            
+    # Download and export YOLO11n
+    print_progress "Downloading YOLO11n PyTorch model..."
+    if download_model "yolo11n" "$YOLO11_PT_URL"; then
+        # Export to ONNX if ultralytics is available
+        if python3 -c "from ultralytics import YOLO" 2>/dev/null; then
+            print_progress "Exporting YOLO11n to ONNX format..."
             if python3 << 'EOF'
 from ultralytics import YOLO
+import sys
 try:
-    model = YOLO('yolo11n.pt')
-    model.export(format='onnx')
-    print("Export successful")
+    model = YOLO('models/yolo11n.pt')
+    model.export(format='onnx', simplify=True)
+    print("✓ Export successful")
 except Exception as e:
-    print(f"Export failed: {e}")
-    exit(1)
+    print(f"✗ Export failed: {e}")
+    sys.exit(1)
 EOF
             then
+                # Move exported ONNX to models directory
                 if [ -f "yolo11n.onnx" ]; then
                     mv yolo11n.onnx models/
-                    print_success "YOLO11n exported and moved to models/"
+                    print_success "YOLO11n.onnx exported successfully"
+                else
+                    print_warning "ONNX file not found after export"
                 fi
             else
-                print_warning "YOLO11n export failed"
+                print_warning "YOLO11n ONNX export failed - using .pt model"
             fi
+        else
+            print_warning "ultralytics not available for export - keeping .pt model"
         fi
+    else
+        print_warning "YOLO11n download failed - you'll need to download it manually"
     fi
     
     # Verify downloaded models
@@ -665,8 +690,11 @@ EOF
         if [ -f "models/${model}.onnx" ]; then
             size=$(du -h "models/${model}.onnx" | cut -f1)
             print_success "${model}.onnx verified ($size)"
+        elif [ -f "models/${model}.pt" ]; then
+            size=$(du -h "models/${model}.pt" | cut -f1)
+            print_success "${model}.pt verified ($size) - export to ONNX if needed"
         else
-            print_warning "${model}.onnx not found"
+            print_warning "${model} not found (.pt or .onnx)"
         fi
     done
 else
@@ -750,12 +778,18 @@ if [ "$VENV_FAILED" != true ] && [ -d "$VENV_DIR" ]; then
 fi
 
 if [ ! -f "models/yolov8n.onnx" ] || [ ! -f "models/yolo11n.onnx" ]; then
-    echo "2. Download missing models (if any):"
+    echo "2. Download and export missing models (if any):"
     if [ ! -f "models/yolov8n.onnx" ]; then
-        echo "   wget https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.onnx -O models/yolov8n.onnx"
+        echo "   # Download PyTorch model and export to ONNX:"
+        echo "   wget https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt -O models/yolov8n.pt"
+        echo "   python3 -c 'from ultralytics import YOLO; YOLO(\"models/yolov8n.pt\").export(format=\"onnx\", simplify=True)'"
+        echo "   mv yolov8n.onnx models/"
     fi
     if [ ! -f "models/yolo11n.onnx" ]; then
-        echo "   wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.onnx -O models/yolo11n.onnx"
+        echo "   # Download PyTorch model and export to ONNX:"
+        echo "   wget https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt -O models/yolo11n.pt"
+        echo "   python3 -c 'from ultralytics import YOLO; YOLO(\"models/yolo11n.pt\").export(format=\"onnx\", simplify=True)'"
+        echo "   mv yolo11n.onnx models/"
     fi
     echo ""
 fi
