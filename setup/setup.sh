@@ -8,9 +8,16 @@
 # Don't exit on error - we'll handle errors ourselves
 set +e
 
+# Get script directory and change to project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT" || exit 1
+
 echo "=========================================="
 echo "YOLO Benchmark Setup for Raspberry Pi 4B"
 echo "=========================================="
+echo ""
+echo "Project directory: $PROJECT_ROOT"
 echo ""
 
 # Colors for output
