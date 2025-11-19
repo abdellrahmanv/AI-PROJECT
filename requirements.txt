@@ -1,0 +1,23 @@
+# requirements.txt
+# Python dependencies for YOLO Benchmark on Raspberry Pi 4B
+# These will be installed automatically by setup.sh into virtual environment
+
+# Core dependencies (with fallback versions)
+numpy>=1.21.0,<=1.24.3
+opencv-python>=4.5.0,<=4.8.1.78
+onnxruntime>=1.15.0,<=1.16.3
+psutil>=5.9.0
+
+# Build tools (automatically installed)
+setuptools>=65.0.0
+wheel>=0.38.0
+
+# Optional dependencies (for model export and analysis)
+# Uncomment if needed:
+# ultralytics>=8.0.0
+# matplotlib>=3.5.0
+# scipy>=1.9.0
+
+# Note: opencv-python-headless can be used as alternative if GUI features not needed
+# opencv-python-headless>=4.5.0,<=4.8.1.78
+
