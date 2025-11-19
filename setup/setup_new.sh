@@ -36,42 +36,52 @@ if [[ ! -f /proc/device-tree/model ]] || ! grep -q "Raspberry Pi" /proc/device-t
 fi
 
 # Detect Python version
-# Try Python 3.11 first (best compatibility), then 3.12, then 3.10
+# Try Python 3.11, 3.12, 3.10, 3.9. Avoid 3.13+.
 PYTHON_CMD=""
 PYTHON_VERSION=""
+OS_VERSION=""
+if [[ -f /etc/os-release ]]; then
+    OS_VERSION=$(grep PRETTY_NAME /etc/os-release | cut -d'=' -f2 | tr -d '"')
+fi
 
-for py_ver in python3.11 python3.12 python3.10 python3; do
+# Check in order of preference
+for py_ver in python3.11 python3.12 python3.10 python3.9 python3; do
     if command -v $py_ver &> /dev/null; then
         PYTHON_VERSION=$($py_ver --version 2>&1 | awk '{print $2}')
         PYTHON_MAJOR=$($py_ver -c 'import sys; print(sys.version_info[0])')
         PYTHON_MINOR=$($py_ver -c 'import sys; print(sys.version_info[1])')
         
-        # Check if version is 3.10, 3.11, or 3.12 (not 3.13!)
-        if [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -ge 10 ]] && [[ $PYTHON_MINOR -le 12 ]]; then
+        # Check if version is 3.9, 3.10, 3.11, or 3.12 (NOT 3.13+)
+        if [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -ge 9 ]] && [[ $PYTHON_MINOR -le 12 ]]; then
             PYTHON_CMD="$py_ver"
             print_success "Using $py_ver (version $PYTHON_VERSION)"
             break
-        elif [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -eq 13 ]]; then
+        elif [[ $PYTHON_MAJOR -eq 3 ]] && [[ $PYTHON_MINOR -ge 13 ]]; then
             print_warning "$py_ver is version $PYTHON_VERSION (too new - ONNX doesn't compile)"
         fi
     fi
 done
 
 if [[ -z "$PYTHON_CMD" ]]; then
-    print_warning "No compatible Python version found (3.10-3.12)."
-    print_info "Current python3 is too new ($PYTHON_VERSION)."
-    
-    print_info "Attempting to install Python 3.11 automatically..."
-    echo "Running: sudo apt update && sudo apt install -y python3.11 python3.11-venv python3.11-dev"
-    
-    if sudo apt update && sudo apt install -y python3.11 python3.11-venv python3.11-dev; then
-        print_success "Python 3.11 installed successfully!"
-        PYTHON_CMD="python3.11"
-        PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
+    print_error "No compatible Python version found!"
+    echo ""
+    echo "Your OS: $OS_VERSION"
+    echo "This script requires Python 3.9, 3.10, 3.11, or 3.12."
+    echo "Python 3.13 and newer are not supported due to library compilation issues."
+    echo ""
+    if [[ "$OS_VERSION" == *"Bullseye"* ]]; then
+        echo "Your OS (Bullseye) includes Python 3.9 by default. If it's not found, something is wrong with your system's Python installation."
+        echo "Try running: sudo apt update && sudo apt install python3"
+    elif [[ "$OS_VERSION" == *"Buster"* ]]; then
+        echo "Your OS (Buster) is too old and does not have a supported Python version."
+        echo "Please upgrade your Raspberry Pi OS to 'Bullseye' or 'Bookworm'."
     else
-        print_error "Failed to install Python 3.11 automatically. Please install it manually:\n  sudo apt install -y python3.11 python3.11-venv python3.11-dev"
-        exit 1
+        echo "If you are on Raspberry Pi OS 'Bookworm', you can install Python 3.11 with:"
+        echo "  sudo apt update"
+        echo "  sudo apt install -y python3.11 python3.11-venv python3.11-dev"
     fi
+    echo ""
+    exit 1
 fi
 
 print_info "Python version: $PYTHON_VERSION"
